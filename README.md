@@ -3,6 +3,12 @@ IONOS Fast Autoscale Service (FAS)
 
 This Python service will provide you with a REST endpoint to scale your infrastructure Up or Down.
 
+This POC will enable you to start working with:
+1 Server
+1 Network LoadBalancer
+1 LAN
+1 Disk
+
 ## Essential Configuration Files
 - Rename ionos-example.py in ionos.py and set your username/password
 - Configure at leas one section in the IONOS-FAS.ini file
