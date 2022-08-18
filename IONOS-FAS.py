@@ -173,28 +173,54 @@ def scaleDown(forwardruleuuid,lanid,min,max,cooldown,apiEndpoint,scaleSection,sc
     url=apiEndpoint + "/datacenters/" + dcuuid + "/servers?depth=3"
     serversDetails=requests.get(url, headers=authAcc)
     serversDetails=(serversDetails.json())
-    countersrv=0
+    countersrv=int(min)
     counterdel=0
     msg="never touched the while loop"
-    while counterdel < 1:
-      print("starting with counterdel")
-      for autoscaledSrv in serversDetails['items']:
+    for autoscaledSrv in serversDetails['items']:
+      while counterdel < 1:
+        print(f"counter delete: {counterdel}")
+        print("starting with counterdel")
         name=autoscaledSrv['properties']['name']
         uuid=autoscaledSrv['id']
         volumeID=autoscaledSrv['entities']['volumes']['items'][0]['id']
+        serverIP=autoscaledSrv['entities']['nics']['items'][0]['properties']['ips'][0]
         compositeName=(scaleSection + "-AutoScaledSRV")
+        print(name)
         if name == compositeName:
           countersrv+=1
-          print(countersrv)
+          print(f"counter delete: {counterdel}")
+          print(f"counter server: {countersrv} - MIN: {min}")
           if countersrv > int(min) :
+            print(f"inside countersrv loop{countersrv}")
             url=apiEndpoint + "/datacenters/" + dcuuid + "/servers/" + uuid
             volumeurl=apiEndpoint + "/datacenters/" + dcuuid + "/volumes/" + volumeID
-            msg="I have more servers than the minimum will delete this one: "
+            msg="I have more servers than the minimum will delete one "
             print(f"Trying to delete server {uuid} and disk {volumeID}")
-            print(url)
-            print(volumeurl)
+            print(serverIP)
             serversDetails=requests.delete(url, headers=authAcc)
             volumeDetails=requests.delete(volumeurl, headers=authAcc)
+            # modify LB Forward Rules
+            url=apiEndpoint + "/datacenters/" + dcuuid + "/networkloadbalancers/" + lbuuid + "/forwardingrules/" + forwardruleuuid
+            request=requests.get(url, headers=authAcc)
+            request=request.json()
+            properties=request['properties']
+            target=request['properties']['targets']
+            for i in target:
+              print(i)
+              if i['ip'] == serverIP:
+                print("works")
+                target.remove(i)
+            # Add nwedict to the current list
+            # add the list target to the main body so we can connect the new server to the LB
+            properties.update({'targets': target})
+            body={
+             "properties": properties
+            }
+            print(body)
+            url=apiEndpoint + "/datacenters/" + dcuuid + "/networkloadbalancers/" + lbuuid + "/forwardingrules/" + forwardruleuuid
+            request=requests.put(url, headers=authAcc, json=body)
+            request=request.json()
+            ##########################
             counterdel+=1
             print(counterdel)
           else:
@@ -202,7 +228,7 @@ def scaleDown(forwardruleuuid,lanid,min,max,cooldown,apiEndpoint,scaleSection,sc
             msg="You reach the min amount of servers for your configuration"
         else:
           counterdel+=1
-          msg="No More Servers to delete"
+          msg="Not a server to delete"
 
     # Test Section
     return msg
