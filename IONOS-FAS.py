@@ -143,8 +143,6 @@ def scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeTyp
   while serverAvilable != "AVAILABLE":
     print(f"Server not available yet, waiting to connect to LB")
     time.sleep(10)
-    print(f"Checking server availability again in 2 sec")
-    time.sleep(2)
     request=requests.get(serverurl, headers=authAcc)
     request=request.json()
     serverAvilable=request['metadata']['state']
@@ -176,8 +174,10 @@ def scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeTyp
   return request
 
 def scaleDown(forwardruleuuid,lanid,min,max,cooldown,apiEndpoint,scaleSection,scaleDownOf,dcuuid,serveruuid,lbuuid):
-    print("work in progress coe back later")
-    
+    print("work in progress come back later")
+    robo="work in progress come back later"
+    return  robo
+
 def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSection,scaleUpOf,dcuuid,serveruuid,lbuuid):
     # Retrieve Server details
     url=apiEndpoint + "/datacenters/" + dcuuid + "/servers/" + serveruuid + "/?depth=4"
