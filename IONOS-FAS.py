@@ -315,7 +315,6 @@ def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSectio
       msg="I am less than maximum"
     else:
       msg="You reach the max amount of deployable servers"
-    # Test Section
     return msg
 
 # Define and star the Flask server on port 5000
@@ -345,7 +344,6 @@ def scaledown_query():
   if scaleDownOf is None:
     scaleDownOf='1'
   tot=(scaleDown(forwardruleuuid,lanid,min,max,cooldown,apiEndpoint,scaleSection,scaleDownOf,dcuuid,serveruuid,lbuuid))
-  # YOU MUST RETURN !!!
   return tot
 
 @app.route('/scaleup')
@@ -377,7 +375,6 @@ def scaleup_query():
   if scaleUpOf is None:
       scaleUpOf='1'
   tot=(scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSection,scaleUpOf,dcuuid,serveruuid,lbuuid))
-  # YOU MUST RETURN !!!
   return tot
 
 @app.route('/snapshot')
@@ -398,7 +395,6 @@ def snapshot_query():
       serveruuid=config[i]['serverID']
       dcuuid=config[i]['datacenterID']
   tot=(only_take_snapshot(apiEndpoint,scaleSection,dcuuid,serveruuid))
-  # YOU MUST RETURN !!!
   return tot
 if __name__ == '__main__':
   app.run(debug=True)
