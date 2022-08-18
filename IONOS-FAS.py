@@ -81,10 +81,12 @@ def scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeTyp
 #  servercount=0
 #  while int(servercount) <= int(scaleUpOf):
   url=apiEndpoint+"/datacenters/"+ dcuuid +"/servers?depth=3"
+  compositenameDRV=str(scaleSection + "-AutoScaledDRV")
+  compositenameSRV=str(scaleSection + "-AutoScaledSRV")
   serversIDs=[]
   body = {
   "properties": {
-        "name": "AutoScaledSrv",
+        "name": compositenameSRV,
         "cores": cpuNumber,
         "ram": memRAM,
         "availabilityZone": "AUTO"
@@ -93,7 +95,7 @@ def scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeTyp
         "volumes": {
             "items": [{
                 "properties": {
-                  "name": "AutoScaledDRV",
+                  "name": compositenameDRV,
                   "image": snapResponse,
                   "type": volumeType,
                   "size": volumeSize,
@@ -123,7 +125,6 @@ def scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeTyp
   }
   response=requests.post(url, headers=authAcc, json=body)
   response=response.json()
-  print(response)
   serverUUID=response['id']
   serversIDs.append(serverUUID)
   serverurl=apiEndpoint + "/datacenters/" + dcuuid + "/servers/" + serverUUID + "/?depth=3"
@@ -131,15 +132,10 @@ def scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeTyp
   while request.status_code != 200:
     print(f"Server not available yet, waiting to connect to LB")
     time.sleep(10)
-    print(f"Checking server availability again in 2 sec")
-    time.sleep(2)
     request=requests.get(serverurl, headers=authAcc)
-
   request=request.json()
-  print(request)
   # is it available?
   serverAvilable=request['metadata']['state']
-  print(serverAvilable)
   while serverAvilable != "AVAILABLE":
     print(f"Server not available yet, waiting to connect to LB")
     time.sleep(10)
@@ -174,12 +170,47 @@ def scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeTyp
   return request
 
 def scaleDown(forwardruleuuid,lanid,min,max,cooldown,apiEndpoint,scaleSection,scaleDownOf,dcuuid,serveruuid,lbuuid):
-    print("work in progress come back later")
+    url=apiEndpoint + "/datacenters/" + dcuuid + "/servers?depth=3"
+    serversDetails=requests.get(url, headers=authAcc)
+    serversDetails=(serversDetails.json())
+    countersrv=0
+    counterdel=0
+    msg="never touched the while loop"
+    while counterdel < 1:
+      print("starting with counterdel")
+      for autoscaledSrv in serversDetails['items']:
+        name=autoscaledSrv['properties']['name']
+        uuid=autoscaledSrv['id']
+        volumeID=autoscaledSrv['entities']['volumes']['items'][0]['id']
+        compositeName=(scaleSection + "-AutoScaledSRV")
+        if name == compositeName:
+          countersrv+=1
+          print(countersrv)
+          if countersrv > int(min) :
+            url=apiEndpoint + "/datacenters/" + dcuuid + "/servers/" + uuid
+            volumeurl=apiEndpoint + "/datacenters/" + dcuuid + "/volumes/" + volumeID
+            msg="I have more servers than the minimum will delete this one: "
+            print(f"Trying to delete server {uuid} and disk {volumeID}")
+            print(url)
+            print(volumeurl)
+            serversDetails=requests.delete(url, headers=authAcc)
+            volumeDetails=requests.delete(volumeurl, headers=authAcc)
+            counterdel+=1
+            print(counterdel)
+          else:
+            counterdel+=1
+            msg="You reach the min amount of servers for your configuration"
+        else:
+          counterdel+=1
+          msg="No More Servers to delete"
+
+    # Test Section
+    return msg
     robo="work in progress come back later"
     return  robo
 
 def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSection,scaleUpOf,dcuuid,serveruuid,lbuuid):
-    # Retrieve Server details
+    # Retrieve Template Server details
     url=apiEndpoint + "/datacenters/" + dcuuid + "/servers/" + serveruuid + "/?depth=4"
     serverDetails=requests.get(url, headers=authAcc)
     serverDetails=(serverDetails.json())
@@ -243,13 +274,23 @@ def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSectio
     # Must check when snapshot is done
     # Must check server's spec
     # Must spin up n# servers as scaleUpOf
-    response=(scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeType,volumeSize,cpuType,cpuNumber,memRAM,min,max,cooldown,apiEndpoint,scaleSection,scaleUpOf,dcuuid,serveruuid,lbuuid))
-    print(response)
-    
+    # Verify if I can scale up in terms of servers
+    url=apiEndpoint + "/datacenters/" + dcuuid + "/servers?depth=3"
+    serversDetails=requests.get(url, headers=authAcc)
+    serversDetails=(serversDetails.json())
+    countersrv=0
+    for autoscaledSrv in serversDetails['items']:
+      name=autoscaledSrv['properties']['name']
+      compositeName=(scaleSection + "-AutoScaledSRV")
+      if name == compositeName:
+        countersrv+=1
+    if countersrv <= int(max) :
+      response=(scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeType,volumeSize,cpuType,cpuNumber,memRAM,min,max,cooldown,apiEndpoint,scaleSection,scaleUpOf,dcuuid,serveruuid,lbuuid))
+      msg="I am less than maximum"
+    else:
+      msg="You reach the max amount of deployable servers"
     # Test Section
-    serverdetails="ok"
-    return serverDetails
-
+    return msg
 
 # Define and star the Flask server on port 5000
 @app.route('/scaledown')
