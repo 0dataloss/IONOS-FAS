@@ -1,6 +1,5 @@
 #!/bin/python3
 import sys
-import ionoscloud
 import time
 import configparser
 import os
@@ -27,13 +26,6 @@ else:
       "username=\"<replace with your username>\"\n"
       "contract=\"<replace with your contract number>\"\n\n")
 
-#### Configure IONOSCLOUD SDK ####
-configuration = ionoscloud.Configuration(
-    username=usernameio,
-    password=passwordio
-)
-client = ionoscloud.ApiClient(configuration)
-##################################
 ######################
 apiEndpoint="https://api.ionos.com/cloudapi/v6"
 ######################
