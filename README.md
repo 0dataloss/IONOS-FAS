@@ -28,7 +28,7 @@ This script is a POC and as such has limitations:
 ## API Reference Guide
 The service will expose 4 endpoints and some of those will accept parameters:
 - /scaledown
--- Required /scaledown?Sgroup=<name of your section in the config file>
+-- Required /scaledown?ASgroup=<name of your section in the config file>
 - /scaleup
--- Required /scaledown?Sgroup=<name of your section in the config file>
+-- Required /scaledown?ASgroup=<name of your section in the config file>
 - /snapshot

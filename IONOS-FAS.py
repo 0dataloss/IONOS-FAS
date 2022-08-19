@@ -1,4 +1,5 @@
 #!/bin/python3
+from http import server
 import sys
 import time
 import configparser
@@ -214,6 +215,7 @@ def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSectio
     url=apiEndpoint + "/datacenters/" + dcuuid + "/servers/" + serveruuid + "/?depth=4"
     serverDetails=requests.get(url, headers=authAcc)
     serverDetails=(serverDetails.json())
+    print(serverDetails)
     volumeID=serverDetails['entities']['volumes']['items'][0]['id']
     volumeSize=serverDetails['entities']['volumes']['items'][0]['properties']['size']
     volumeType=serverDetails['entities']['volumes']['items'][0]['properties']['type']
@@ -309,7 +311,7 @@ def scaledown_query():
   except:
     print("The configuration file IONOS-FAS.ini does not exist")
 
-  scaleSection=request.args.get('Sgroup')
+  scaleSection=request.args.get('ASgroup')
   looping=config.sections()
   for i in looping:
     if i != scaleSection:
@@ -324,7 +326,7 @@ def scaledown_query():
       cooldown=""
       lanid=config[i]['lanID']
       forwardruleuuid=config[i]['forwardingID']
-  scaleDownOf=request.args.get('addSrv')
+  scaleDownOf=request.args.get('delSrv')
   if scaleDownOf is None:
     scaleDownOf='1'
   tot=(scaleDown(forwardruleuuid,lanid,min,max,cooldown,apiEndpoint,scaleSection,scaleDownOf,dcuuid,serveruuid,lbuuid))
@@ -339,7 +341,7 @@ def scaleup_query():
   except:
     print("The configuration file IONOS-FAS.ini does not exist")
 
-  scaleSection=request.args.get('Sgroup')
+  scaleSection=request.args.get('ASgroup')
   force=request.args.get('force')
   force=bool(force)
   looping=config.sections()
@@ -371,7 +373,7 @@ def snapshot_query():
   except:
     print("The configuration file IONOS-FAS.ini does not exist")
 
-  scaleSection=request.args.get('Sgroup')
+  scaleSection=request.args.get('ASgroup')
   looping=config.sections()
   for i in looping:
     if i != scaleSection:
