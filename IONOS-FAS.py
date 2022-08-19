@@ -215,7 +215,6 @@ def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSectio
     url=apiEndpoint + "/datacenters/" + dcuuid + "/servers/" + serveruuid + "/?depth=4"
     serverDetails=requests.get(url, headers=authAcc)
     serverDetails=(serverDetails.json())
-    print(serverDetails)
     volumeID=serverDetails['entities']['volumes']['items'][0]['id']
     volumeSize=serverDetails['entities']['volumes']['items'][0]['properties']['size']
     volumeType=serverDetails['entities']['volumes']['items'][0]['properties']['type']
