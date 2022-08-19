@@ -20,8 +20,8 @@ preferrably, just keeping it runnig locally on 127.0.0.1:5000
 
 ## LIMITATIONS
 This script is a POC and as such has limitations:
-- Please make sure to specify in the configuration file which one is the network ID connecting the machines to the Network Loadbalancer as only one network can be replicated
-- Please make sure your master server does have only one disk
+- Please make sure to specify in the configuration file which one is the network ID connecting the machines to the Network Loadbalancer as the script does not looks for it
+- Please make sure your master server does have only one disk as for the moment we do snapshot and replicate only 1
 - Make sure your Network Loadbalancer has only one forwarding rule. you can manage more forwarding rules but you will need more sections in the configuration file.
 - Min=1 means delete all the replica, leave the origin server. Setting Min=0 does have no effect on your infrastructure
 

@@ -1,6 +1,4 @@
 #!/bin/python3
-
-from http import server
 import sys
 import ionoscloud
 import time
@@ -77,7 +75,7 @@ def only_take_snapshot(apiEndpoint,scaleSection,dcuuid,serveruuid):
   response=(response.json())
   return response
 
-def scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeType,volumeSize,cpuType,cpuNumber,memRAM,min,max,cooldown,apiEndpoint,scaleSection,scaleUpOf,dcuuid,serveruuid,lbuuid):
+def scaling_up_server(lanid,listMultiNic,forwardruleuuid,snapResponse,singleNicProperties,volumeType,volumeSize,cpuType,cpuNumber,memRAM,min,max,cooldown,apiEndpoint,scaleSection,scaleUpOf,dcuuid,serveruuid,lbuuid):
 #  servercount=0
 #  while int(servercount) <= int(scaleUpOf):
   url=apiEndpoint+"/datacenters/"+ dcuuid +"/servers?depth=3"
@@ -113,13 +111,7 @@ def scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeTyp
             }]
         },
         "nics": {
-            "items": [{
-                "properties": {
-                  "dhcp": singleNicProperties['dhcp'],
-                  "lan": singleNicProperties['lan'],
-                  "firewallActive": singleNicProperties['firewall']
-                }
-            }]
+            "items": listMultiNic
         }    
     }
   }
@@ -142,7 +134,12 @@ def scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeTyp
     request=requests.get(serverurl, headers=authAcc)
     request=request.json()
     serverAvilable=request['metadata']['state']
-  serverIP=request['entities']['nics']['items'][0]['properties']['ips'][0]
+  # Which IP? look for the right LAN id and then grub it from the API
+  for nic in request['entities']['nics']['items']:
+      lan=nic['properties']['lan']
+      if str(lan) == lanid:
+        serverIP=nic['properties']['ips'][0]
+  #serverIP=request['entities']['nics']['items'][0]['properties']['ips'][0]
   # Attach server to forwardrule at the LB level
   url=apiEndpoint + "/datacenters/" + dcuuid + "/networkloadbalancers/" + lbuuid + "/forwardingrules/" + forwardruleuuid
   request=requests.get(url, headers=authAcc)
@@ -178,25 +175,18 @@ def scaleDown(forwardruleuuid,lanid,min,max,cooldown,apiEndpoint,scaleSection,sc
     msg="never touched the while loop"
     for autoscaledSrv in serversDetails['items']:
       while counterdel < 1:
-        print(f"counter delete: {counterdel}")
-        print("starting with counterdel")
         name=autoscaledSrv['properties']['name']
         uuid=autoscaledSrv['id']
         volumeID=autoscaledSrv['entities']['volumes']['items'][0]['id']
         serverIP=autoscaledSrv['entities']['nics']['items'][0]['properties']['ips'][0]
         compositeName=(scaleSection + "-AutoScaledSRV")
-        print(name)
         if name == compositeName:
           countersrv+=1
-          print(f"counter delete: {counterdel}")
-          print(f"counter server: {countersrv} - MIN: {min}")
           if countersrv > int(min) :
-            print(f"inside countersrv loop{countersrv}")
             url=apiEndpoint + "/datacenters/" + dcuuid + "/servers/" + uuid
             volumeurl=apiEndpoint + "/datacenters/" + dcuuid + "/volumes/" + volumeID
             msg="I have more servers than the minimum will delete one "
             print(f"Trying to delete server {uuid} and disk {volumeID}")
-            print(serverIP)
             serversDetails=requests.delete(url, headers=authAcc)
             volumeDetails=requests.delete(volumeurl, headers=authAcc)
             # modify LB Forward Rules
@@ -206,9 +196,7 @@ def scaleDown(forwardruleuuid,lanid,min,max,cooldown,apiEndpoint,scaleSection,sc
             properties=request['properties']
             target=request['properties']['targets']
             for i in target:
-              print(i)
               if i['ip'] == serverIP:
-                print("works")
                 target.remove(i)
             # Add nwedict to the current list
             # add the list target to the main body so we can connect the new server to the LB
@@ -216,24 +204,18 @@ def scaleDown(forwardruleuuid,lanid,min,max,cooldown,apiEndpoint,scaleSection,sc
             body={
              "properties": properties
             }
-            print(body)
             url=apiEndpoint + "/datacenters/" + dcuuid + "/networkloadbalancers/" + lbuuid + "/forwardingrules/" + forwardruleuuid
             request=requests.put(url, headers=authAcc, json=body)
             request=request.json()
             ##########################
             counterdel+=1
-            print(counterdel)
           else:
             counterdel+=1
             msg="You reach the min amount of servers for your configuration"
         else:
           counterdel+=1
           msg="Not a server to delete"
-
-    # Test Section
     return msg
-    robo="work in progress come back later"
-    return  robo
 
 def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSection,scaleUpOf,dcuuid,serveruuid,lbuuid):
     # Retrieve Template Server details
@@ -243,17 +225,26 @@ def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSectio
     volumeID=serverDetails['entities']['volumes']['items'][0]['id']
     volumeSize=serverDetails['entities']['volumes']['items'][0]['properties']['size']
     volumeType=serverDetails['entities']['volumes']['items'][0]['properties']['type']
+    listMultiNic=[]
+    tempDict={}
     for nic in serverDetails['entities']['nics']['items']:
+      dictMultiNic={}
+      tempDict={}
       singleNicProperties={}
       lan=nic['properties']['lan']
+      dictMultiNic['lan']=lan
+      firewall=nic['properties']['firewallActive']
+      dictMultiNic['firewallActive']=firewall
+      dhcp=nic['properties']['dhcp']
+      dictMultiNic['dhcp']=dhcp
       if str(lan) == lanid:
         singleNicProperties['lan']=lan
         firewall=nic['properties']['firewallActive']
         singleNicProperties['firewall']=firewall
         dhcp=nic['properties']['dhcp']
         singleNicProperties['dhcp']=dhcp
-      else:
-        continue
+      tempDict['properties']=dictMultiNic
+      listMultiNic.append(tempDict)
     cpuNumber=serverDetails['properties']['cores']
     cpuType=serverDetails['properties']['cpuFamily']
     memRAM=serverDetails['properties']['ram']
@@ -282,7 +273,7 @@ def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSectio
           timePastFromLastSnapshot=(((now - int(nameFoundEpoch))/60)/60)
           # Check if it has been more than 2 hours
           if timePastFromLastSnapshot >= 2:
-            print("Take a snapshoot as it is too old to be trusted")
+            print("Take a snapshoot as the one I found it's too old to be trusted")
             snapResponse=(take_snapshot(apiEndpoint,dcuuid,volumeID,scaleSection,now))
             finshedWithSnapshot=True
           elif force is True:
@@ -290,11 +281,11 @@ def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSectio
             snapResponse=(take_snapshot(apiEndpoint,dcuuid,volumeID,scaleSection,now))
             finshedWithSnapshot=True
           else:
-            print("Snapshot is ok multiply the server")
+            print("Snapshot is ok, I am going to multiply the servers now!")
             snapResponse=idFound
             finshedWithSnapshot=True
     if finshedWithSnapshot is False:
-      print("Take a snapshoot as no snapshot exists")
+      print("Taking a snapshoot as no snapshot exists")
       snapResponse=(take_snapshot(apiEndpoint,dcuuid,volumeID,scaleSection,now))
 
     # Must check when snapshot is done
@@ -311,7 +302,7 @@ def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSectio
       if name == compositeName:
         countersrv+=1
     if countersrv <= int(max) :
-      response=(scaling_up_server(forwardruleuuid,snapResponse,singleNicProperties,volumeType,volumeSize,cpuType,cpuNumber,memRAM,min,max,cooldown,apiEndpoint,scaleSection,scaleUpOf,dcuuid,serveruuid,lbuuid))
+      response=(scaling_up_server(lanid,listMultiNic,forwardruleuuid,snapResponse,singleNicProperties,volumeType,volumeSize,cpuType,cpuNumber,memRAM,min,max,cooldown,apiEndpoint,scaleSection,scaleUpOf,dcuuid,serveruuid,lbuuid))
       msg="I am less than maximum"
     else:
       msg="You reach the max amount of deployable servers"
@@ -337,7 +328,8 @@ def scaledown_query():
       dcuuid=config[i]['datacenterID']
       min=config[i]['min']
       max=config[i]['max']
-      cooldown=config[i]['cooldown']
+#      cooldown=config[i]['cooldown']
+      cooldown=""
       lanid=config[i]['lanID']
       forwardruleuuid=config[i]['forwardingID']
   scaleDownOf=request.args.get('addSrv')
@@ -368,7 +360,8 @@ def scaleup_query():
       dcuuid=config[i]['datacenterID']
       min=config[i]['min']
       max=config[i]['max']
-      cooldown=config[i]['cooldown']
+#      cooldown=config[i]['cooldown']
+      cooldown=""
       lanid=config[i]['lanID']
       forwardruleuuid=config[i]['forwardingID']
   scaleUpOf=request.args.get('addSrv')
