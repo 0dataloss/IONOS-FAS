@@ -3,15 +3,16 @@ IONOS Fast Autoscale Service (FAS)
 
 This Python service will provide you with a REST endpoint to scale your infrastructure Up or Down.
 
-This POC will enable you to start working with:
-1 Server
-1 Network LoadBalancer
-1 LAN
-1 Disk
+This POC will enable you to start scaling up or down:
+
+1 Template Server with:
+- 1 Disk
+- Multiple network cards
+- 1 Network card connected to 1 Network Load Balancer
 
 ## Essential Configuration Files
 - Rename ionos-example.py in ionos.py and set your username/password
-- Configure at leas one section in the IONOS-FAS.ini file
+- Configure at leas one section in the IONOS-FAS.ini file following the template
 
 ## How to run the script
 This is a POC so please do not run the service in a public server.
@@ -26,9 +27,13 @@ This script is a POC and as such has limitations:
 - Min=1 means delete all the replica, leave the origin server. Setting Min=0 does have no effect on your infrastructure
 
 ## API Reference Guide
-The service will expose 4 endpoints and some of those will accept parameters:
-- /scaledown
--- Required /scaledown?ASgroup=<name of your section in the config file>
+The service will expose 3 endpoints and some of those will accept parameters:
+
+- /scaledown -- Required ?ASgroup=<name of your section in the config file>
+- - Example: 127.0.0.1:5000/scaledown?ASgroup=app01
+
 - /scaleup
--- Required /scaledown?ASgroup=<name of your section in the config file>
+Example: 127.0.0.1:5000/scaleup?ASgroup=app01 -- Required ?ASgroup=<name of your section in the config file>
+- - Example: 127.0.0.1:5000/scaleup?ASgroup=app01
+
 - /snapshot
