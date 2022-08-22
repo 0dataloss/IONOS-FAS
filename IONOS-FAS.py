@@ -1,6 +1,5 @@
 #!/bin/python3
 import sys
-import ionoscloud
 import time
 import configparser
 import os
@@ -27,13 +26,6 @@ else:
       "username=\"<replace with your username>\"\n"
       "contract=\"<replace with your contract number>\"\n\n")
 
-#### Configure IONOSCLOUD SDK ####
-configuration = ionoscloud.Configuration(
-    username=usernameio,
-    password=passwordio
-)
-client = ionoscloud.ApiClient(configuration)
-##################################
 ######################
 apiEndpoint="https://api.ionos.com/cloudapi/v6"
 ######################
@@ -317,7 +309,7 @@ def scaledown_query():
   except:
     print("The configuration file IONOS-FAS.ini does not exist")
 
-  scaleSection=request.args.get('Sgroup')
+  scaleSection=request.args.get('ASgroup')
   looping=config.sections()
   for i in looping:
     if i != scaleSection:
@@ -332,7 +324,7 @@ def scaledown_query():
       cooldown=""
       lanid=config[i]['lanID']
       forwardruleuuid=config[i]['forwardingID']
-  scaleDownOf=request.args.get('addSrv')
+  scaleDownOf=request.args.get('delSrv')
   if scaleDownOf is None:
     scaleDownOf='1'
   tot=(scaleDown(forwardruleuuid,lanid,min,max,cooldown,apiEndpoint,scaleSection,scaleDownOf,dcuuid,serveruuid,lbuuid))
@@ -347,7 +339,7 @@ def scaleup_query():
   except:
     print("The configuration file IONOS-FAS.ini does not exist")
 
-  scaleSection=request.args.get('Sgroup')
+  scaleSection=request.args.get('ASgroup')
   force=request.args.get('force')
   force=bool(force)
   looping=config.sections()
@@ -379,7 +371,7 @@ def snapshot_query():
   except:
     print("The configuration file IONOS-FAS.ini does not exist")
 
-  scaleSection=request.args.get('Sgroup')
+  scaleSection=request.args.get('ASgroup')
   looping=config.sections()
   for i in looping:
     if i != scaleSection:
