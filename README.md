@@ -29,11 +29,11 @@ This script is a POC and as such has limitations:
 ## API Reference Guide
 The service will expose 3 endpoints and some of those will accept parameters:
 
-- /scaledown -- Required ?ASgroup=<name of your section in the config file>
-- - Example: 127.0.0.1:5000/scaledown?ASgroup=app01
+- /scaledown?ASgroup=<name of your section in the config file>
+  - Example: 127.0.0.1:5000/scaledown?ASgroup=app01
 
 - /scaleup
-Example: 127.0.0.1:5000/scaleup?ASgroup=app01 -- Required ?ASgroup=<name of your section in the config file>
-- - Example: 127.0.0.1:5000/scaleup?ASgroup=app01
+Example: 127.0.0.1:5000/scaleup?ASgroup=app01?ASgroup=<name of your section in the config file>
+  - Example: 127.0.0.1:5000/scaleup?ASgroup=app01
 
 - /snapshot
