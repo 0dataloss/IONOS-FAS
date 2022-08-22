@@ -50,7 +50,18 @@ def take_snapshot(apiEndpoint,dcuuid,volumeID,scaleSection,now):
   dataForCreate={'name': scaleSection+"-"+str(now),'description':volumeID}
   response=requests.post(url, headers=authAcc, data=dataForCreate)
   response=response.json()
+  isBusy=response['metadata']['state']
   uuid=response['id']
+  # check when snapshot is available
+  url=apiEndpoint+"/snapshots/"+ uuid
+  while isBusy != "AVAILABLE":
+    print("Checking if Snapshot is Available or not. At the moment -> "+isBusy)
+    time.sleep(5)
+    print("Will Try Again!")
+    response=requests.get(url, headers=authAcc)
+    response=response.json()
+    isBusy=response['metadata']['state']
+  print("Snapshot is Available! Going ahead and creating server")
   return uuid
 
 def only_take_snapshot(apiEndpoint,scaleSection,dcuuid,serveruuid):
@@ -170,7 +181,10 @@ def scaleDown(forwardruleuuid,lanid,min,max,cooldown,apiEndpoint,scaleSection,sc
         name=autoscaledSrv['properties']['name']
         uuid=autoscaledSrv['id']
         volumeID=autoscaledSrv['entities']['volumes']['items'][0]['id']
-        serverIP=autoscaledSrv['entities']['nics']['items'][0]['properties']['ips'][0]
+        for ip in autoscaledSrv['entities']['nics']['items']:
+          lan=ip['properties']['lan']
+          if str(lan) == lanid :
+            serverIP=ip['properties']['ips'][0]
         compositeName=(scaleSection + "-AutoScaledSRV")
         if name == compositeName:
           countersrv+=1
@@ -264,7 +278,7 @@ def scaleUp(forwardruleuuid,lanid,min,max,cooldown,force,apiEndpoint,scaleSectio
           nameFoundEpoch=nameFoundSplit[1]
           timePastFromLastSnapshot=(((now - int(nameFoundEpoch))/60)/60)
           # Check if it has been more than 2 hours
-          if timePastFromLastSnapshot >= 2:
+          if timePastFromLastSnapshot >= 10:
             print("Take a snapshoot as the one I found it's too old to be trusted")
             snapResponse=(take_snapshot(apiEndpoint,dcuuid,volumeID,scaleSection,now))
             finshedWithSnapshot=True
