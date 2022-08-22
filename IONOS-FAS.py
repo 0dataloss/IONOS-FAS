@@ -1,5 +1,4 @@
 #!/bin/python3
-from http import server
 import sys
 import time
 import configparser
